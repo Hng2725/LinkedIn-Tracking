@@ -132,16 +132,26 @@
     },
     {
       "id": "merve-linkedin-urn-li-activity-7480278206969724928",
-      "date": "2026-07-07",
+      "date": "2026-07-08",
       "views": 0,
       "reacts": 1,
       "comments": 0,
       "reposts": 0,
       "summary": "When we made the decision that PrivOS would not store your operational data centrally - that your data would live in your environment, not ours - we k...",
       "link": "https://www.linkedin.com/feed/update/urn:li:activity:7480278206969724928/"
+    },
+    {
+      "id": "merve-linkedin-urn-li-activity-7480599147289497600",
+      "date": "2026-07-08",
+      "views": 0,
+      "reacts": 0,
+      "comments": 0,
+      "reposts": 0,
+      "summary": "I have sat in rooms where the \"AI strategy\" was presented for 40 minutes without once mentioning where the AI learns from.The deck was impressive. Eff...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7480599147289497600/"
     }
   ],
-  "lastCrawledAt": "2026-07-08T10:41:14.075Z",
-  "status": "crawling",
-  "followers": 185
+  "lastCrawledAt": "2026-07-09T03:13:02.580Z",
+  "status": "done",
+  "followers": null
 }

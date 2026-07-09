@@ -2,7 +2,7 @@
   "posts": [
     {
       "id": "privos-linkedin-urn-li-activity-7479768220426764288",
-      "date": "2026-07-06",
+      "date": "2026-07-07",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -42,7 +42,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7477746714045476864",
-      "date": "2026-07-01",
+      "date": "2026-07-02",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -52,7 +52,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7477398999331676160",
-      "date": "2026-07-01",
+      "date": "2026-07-02",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -62,7 +62,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7476317859686567936",
-      "date": "2026-07-01",
+      "date": "2026-07-02",
       "views": 0,
       "reacts": 0,
       "comments": 0,
@@ -79,9 +79,19 @@
       "reposts": 0,
       "summary": "Public SaaS vs Private Cloud vs On-Premise / Air-Gapped: Which AI Deployment Model Fits Your Business?The right deployment model depends on your busin...",
       "link": "https://www.linkedin.com/feed/update/urn:li:activity:7475873641671315456/"
+    },
+    {
+      "id": "privos-linkedin-urn-li-activity-7480586476200611841",
+      "date": "2026-07-08",
+      "views": 0,
+      "reacts": 0,
+      "comments": 0,
+      "reposts": 0,
+      "summary": "Most enterprise workspaces solve the collaboration problem by asking every team to work in the same format. The consequence is predictable: engineerin...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7480586476200611841/"
     }
   ],
-  "lastCrawledAt": "2026-07-08T08:04:19.093Z",
-  "status": "crawling",
-  "followers": 158
+  "lastCrawledAt": "2026-07-09T03:04:48.271Z",
+  "status": "done",
+  "followers": null
 }
