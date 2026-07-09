@@ -1,0 +1,39 @@
+name: Daily LinkedIn Crawl
+
+on:
+  schedule:
+    # 00:00 every day (UTC)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allows manual triggering from Github UI
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to commit the updated JSON files
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Crawler Script
+        env:
+          API_AUTH_KEY: ${{ secrets.API_AUTH_KEY }}
+        run: npx tsx scripts/github-action-crawl.ts
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add linkedin-cache-merve.json linkedin-cache-privos.json
+          git commit -m "chore(data): auto-update linkedin cache [skip ci]" || echo "No changes to commit"
+          git push

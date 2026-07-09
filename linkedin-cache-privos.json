@@ -1,0 +1,87 @@
+{
+  "posts": [
+    {
+      "id": "privos-linkedin-urn-li-activity-7479768220426764288",
+      "date": "2026-07-06",
+      "views": 0,
+      "reacts": 1,
+      "comments": 0,
+      "reposts": 1,
+      "summary": "Fewer than 29% of enterprise applications are integrated with each other. That means most of the data your team acts on every day is incomplete, and t...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7479768220426764288/"
+    },
+    {
+      "id": "privos-linkedin-urn-li-activity-7478739482389659649",
+      "date": "2026-07-04",
+      "views": 0,
+      "reacts": 1,
+      "comments": 0,
+      "reposts": 0,
+      "summary": "Most enterprise AI deployments create a two-step process: the AI provides an answer, and then a person manually acts on that answer inside a separate ...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7478739482389659649/"
+    },
+    {
+      "id": "privos-linkedin-urn-li-activity-7478359887475785728",
+      "date": "2026-07-03",
+      "views": 0,
+      "reacts": 1,
+      "comments": 1,
+      "reposts": 1,
+      "summary": "One of the most common security gaps in enterprise software deployments is not a technical vulnerability. It is an organizational one: users holding p...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7478359887475785728/"
+    },
+    {
+      "id": "privos-linkedin-urn-li-activity-7477996344842948608",
+      "date": "2026-07-02",
+      "views": 0,
+      "reacts": 3,
+      "comments": 0,
+      "reposts": 0,
+      "summary": "In enterprise communication environments with dozens of concurrent discussions, the most common productivity drain is not the volume of messages. It i...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7477996344842948608/"
+    },
+    {
+      "id": "privos-linkedin-urn-li-activity-7477746714045476864",
+      "date": "2026-07-01",
+      "views": 0,
+      "reacts": 1,
+      "comments": 0,
+      "reposts": 0,
+      "summary": "In collaborative workspaces, the most dangerous edit isn't the one that breaks something immediately, it's the one nobody notices until weeks later.Pr...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7477746714045476864/"
+    },
+    {
+      "id": "privos-linkedin-urn-li-activity-7477398999331676160",
+      "date": "2026-07-01",
+      "views": 0,
+      "reacts": 1,
+      "comments": 0,
+      "reposts": 0,
+      "summary": "MCP Apps are changing what enterprise looks like.Most business applications were built for humans to click, update, and move information manually. Pri...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7477398999331676160/"
+    },
+    {
+      "id": "privos-linkedin-urn-li-activity-7476317859686567936",
+      "date": "2026-07-01",
+      "views": 0,
+      "reacts": 0,
+      "comments": 0,
+      "reposts": 0,
+      "summary": "The “Eyes and Hands” Behind PrivOS AI Agents 🤖An AI Agent is only as powerful as its ability to understand what is happening and take action inside t...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7476317859686567936/"
+    },
+    {
+      "id": "privos-linkedin-urn-li-activity-7475873641671315456",
+      "date": "2026-07-01",
+      "views": 0,
+      "reacts": 1,
+      "comments": 0,
+      "reposts": 0,
+      "summary": "Public SaaS vs Private Cloud vs On-Premise / Air-Gapped: Which AI Deployment Model Fits Your Business?The right deployment model depends on your busin...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7475873641671315456/"
+    }
+  ],
+  "lastCrawledAt": "2026-07-08T08:04:19.093Z",
+  "status": "crawling",
+  "followers": 158
+}
