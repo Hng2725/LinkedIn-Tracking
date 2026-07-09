@@ -15,48 +15,85 @@ async function getPrivosAccessToken(privosUrl: string, clientId: string, clientS
 	return data.access_token;
 }
 
-// Hàm đẩy dữ liệu lên Privos
+import WebSocket from 'ws';
+
+// Hàm đẩy dữ liệu lên Privos qua WebSocket (MCP JSON-RPC)
 async function pushToPrivos(accountId: string) {
 	const privosUrl = process.env.PRIVOS_URL;
 	const clientId = process.env.CLIENT_ID;
 	const clientSecret = process.env.CLIENT_SECRET;
 
 	if (!privosUrl || !clientId || !clientSecret) {
-		console.warn(`[Push] Bỏ qua việc push lên Privos cho ${accountId} vì thiếu ENV credentials (PRIVOS_URL, vv...).`);
+		console.warn(`[Push] Bỏ qua việc push lên Privos cho ${accountId} vì thiếu ENV credentials.`);
 		return;
 	}
 
 	try {
 		console.log(`[Push] Đang lấy token để push cho ${accountId}...`);
 		const token = await getPrivosAccessToken(privosUrl, clientId, clientSecret);
-
-		// Đọc data từ file cache vừa crawl xong
+		
 		const cachePath = path.join(process.cwd(), `linkedin-cache-${accountId}.json`);
 		if (!fs.existsSync(cachePath)) {
 			console.log(`[Push] Không tìm thấy cache file ${cachePath}`);
 			return;
 		}
+		
+		// Đọc file json
 		const data = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
 
-		// Gọi API Privos để đẩy data (TODO: Bạn cần sửa đường dẫn endpoint này cho đúng với schema của Privos)
-		const apiEndpoint = `${privosUrl}/api/v1/lists/6a488ba39de21b2fd30e246e/items`;
+		// Đổi http -> ws
+		const wsUrl = privosUrl.replace(/^http/, 'ws') + '/api/v1/mcp-apps.relay';
+		console.log(`[Push] Đang kết nối WebSocket tới ${wsUrl}...`);
+		
+		const ws = new WebSocket(wsUrl, { headers: { Authorization: `Bearer ${token}` } });
 
-		console.log(`[Push] Đang gửi dữ liệu lên ${apiEndpoint}...`);
-		const response = await fetch(apiEndpoint, {
-			method: 'POST', // hoặc PUT tùy Privos yêu cầu
-			headers: {
-				'Authorization': `Bearer ${token}`,
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ accountId, ...data })
+		await new Promise((resolve, reject) => {
+			ws.on('open', () => {
+				console.log(`[Push] Đã kết nối WS. Đang gửi data bằng JSON-RPC...`);
+				
+				// Mã List ID của bạn (hãy đảm bảo đã thay đúng mã của bạn ở đây)
+				const TARGET_LIST_ID = '6a488ba39de21b2fd30e246e'; // ID của bạn
+				
+				const req = {
+					jsonrpc: '2.0',
+					id: Date.now(),
+					method: 'tools/call', // Gọi MCP Tool của Privos
+					params: {
+						name: 'privos.lists.createItem',
+						arguments: {
+							listId: TARGET_LIST_ID,
+							title: `[Auto-Crawl] Dữ liệu LinkedIn của ${accountId} (${new Date().toLocaleDateString()})`,
+							description: JSON.stringify(data)
+						}
+					}
+				};
+				ws.send(JSON.stringify(req));
+			});
+
+			ws.on('message', (raw) => {
+				const msg = JSON.parse(raw.toString());
+				if (msg.error) {
+					console.error('[Push] ❌ Lỗi từ Privos:', msg.error);
+					reject(new Error(msg.error.message));
+				} else if (msg.result) {
+					console.log(`[Push] ✅ Đã đẩy dữ liệu thành công lên Privos cho ${accountId}!`);
+					resolve(true);
+				}
+				ws.close();
+			});
+
+			ws.on('error', (err) => {
+				console.error('[Push] WS Error:', err);
+				reject(err);
+			});
+			
+			// Đề phòng timeout
+			setTimeout(() => {
+				ws.close();
+				resolve(false);
+			}, 15000);
 		});
 
-		if (!response.ok) {
-			const err = await response.text();
-			throw new Error(`API Error: ${response.status} - ${err}`);
-		}
-
-		console.log(`[Push] ✅ Đã đẩy dữ liệu thành công cho ${accountId}!`);
 	} catch (error) {
 		console.error(`[Push] ❌ Lỗi khi đẩy lên Privos cho ${accountId}:`, error);
 	}
