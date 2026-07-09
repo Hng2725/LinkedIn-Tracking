@@ -519,6 +519,11 @@ export default function SocialTrackerApp() {
       <Title level={2} style={{ textAlign: 'center', marginBottom: 32, color: '#1890ff' }}>Multi-Platform KPI Tracker</Title>
 
       <Card size="small" style={{ marginBottom: 16, background: '#f0f0f0', border: '1px dashed #999' }}>
+        {privosSocialList && (
+          <div style={{ marginBottom: 8, color: '#d9363e', fontWeight: 'bold', fontSize: 14 }}>
+            🎯 YOUR_LIST_ID: {privosSocialList._id} (Copy mã này để bỏ vào file github-action-crawl.ts)
+          </div>
+        )}
         <Text style={{ fontSize: 11, fontFamily: 'monospace', wordBreak: 'break-all' }}>🔍 DEBUG: {debugInfo}</Text>
       </Card>
 

@@ -28,6 +28,9 @@ jobs:
       - name: Run Crawler Script
         env:
           API_AUTH_KEY: ${{ secrets.API_AUTH_KEY }}
+          PRIVOS_URL: ${{ secrets.PRIVOS_URL }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
         run: npx tsx scripts/github-action-crawl.ts
 
       - name: Commit and push changes
