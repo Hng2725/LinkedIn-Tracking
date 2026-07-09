@@ -17,7 +17,69 @@ async function getPrivosAccessToken(privosUrl: string, clientId: string, clientS
 
 import WebSocket from 'ws';
 
-// Hàm đẩy dữ liệu lên Privos qua WebSocket (MCP JSON-RPC)
+class PrivosWSClient {
+    ws: WebSocket;
+    callbacks: Map<number, {resolve: Function, reject: Function}> = new Map();
+    nextId = 1;
+
+    constructor(url: string, token: string) {
+        this.ws = new WebSocket(url, { headers: { Authorization: `Bearer ${token}` } });
+        this.ws.on('message', (raw) => {
+            const msg = JSON.parse(raw.toString());
+            if (msg.id && this.callbacks.has(msg.id)) {
+                if (msg.error) this.callbacks.get(msg.id)!.reject(new Error(msg.error.message));
+                else this.callbacks.get(msg.id)!.resolve(msg.result);
+                this.callbacks.delete(msg.id);
+            }
+        });
+    }
+
+    async connect() {
+        return new Promise<void>((resolve, reject) => {
+            this.ws.on('open', resolve);
+            this.ws.on('error', reject);
+        });
+    }
+
+    async callTool(name: string, args: any): Promise<any> {
+        const id = this.nextId++;
+        return new Promise((resolve, reject) => {
+            this.callbacks.set(id, { resolve, reject });
+            this.ws.send(JSON.stringify({
+                jsonrpc: '2.0',
+                id,
+                method: 'tools/call',
+                params: { name, arguments: args }
+            }));
+            setTimeout(() => {
+                if (this.callbacks.has(id)) {
+                    this.callbacks.delete(id);
+                    reject(new Error(`Timeout calling tool ${name}`));
+                }
+            }, 30000);
+        });
+    }
+
+    close() {
+        this.ws.close();
+    }
+}
+
+function getCreatedId(res: any): string | null {
+	if (res?._id) return res._id;
+	if (Array.isArray(res?.content)) {
+		const textBlock = res.content.find((c: any) => c.type === 'text');
+		if (textBlock) {
+			try {
+				const parsed = JSON.parse(textBlock.text);
+				return parsed._id || parsed.item?._id || null;
+			} catch (e) {}
+		}
+	}
+	return null;
+}
+
+// Hàm đẩy dữ liệu lên Privos qua WebSocket (MCP JSON-RPC) theo đúng Workflow
 async function pushToPrivos(accountId: string) {
 	const privosUrl = process.env.PRIVOS_URL;
 	const clientId = process.env.CLIENT_ID;
@@ -33,67 +95,93 @@ async function pushToPrivos(accountId: string) {
 		const token = await getPrivosAccessToken(privosUrl, clientId, clientSecret);
 		
 		const cachePath = path.join(process.cwd(), `linkedin-cache-${accountId}.json`);
-		if (!fs.existsSync(cachePath)) {
-			console.log(`[Push] Không tìm thấy cache file ${cachePath}`);
-			return;
-		}
-		
-		// Đọc file json
+		if (!fs.existsSync(cachePath)) return;
 		const data = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
 
-		// Đổi http -> ws
 		const wsUrl = privosUrl.replace(/^http/, 'ws') + '/api/v1/mcp-apps.relay';
 		console.log(`[Push] Đang kết nối WebSocket tới ${wsUrl}...`);
 		
-		const ws = new WebSocket(wsUrl, { headers: { Authorization: `Bearer ${token}` } });
+		const client = new PrivosWSClient(wsUrl, token);
+		await client.connect();
+		console.log(`[Push] Đã kết nối WS. Đang xử lý data cho ${accountId}...`);
 
-		await new Promise((resolve, reject) => {
-			ws.on('open', () => {
-				console.log(`[Push] Đã kết nối WS. Đang gửi data bằng JSON-RPC...`);
-				
-				// Mã List ID của bạn (hãy đảm bảo đã thay đúng mã của bạn ở đây)
-				const TARGET_LIST_ID = '6a488ba39de21b2fd30e246e'; // ID của bạn
-				
-				const req = {
-					jsonrpc: '2.0',
-					id: Date.now(),
-					method: 'tools/call', // Gọi MCP Tool của Privos
-					params: {
-						name: 'privos.lists.createItem',
-						arguments: {
-							listId: TARGET_LIST_ID,
-							title: `[Auto-Crawl] Dữ liệu LinkedIn của ${accountId} (${new Date().toLocaleDateString()})`,
-							description: JSON.stringify(data)
-						}
-					}
-				};
-				ws.send(JSON.stringify(req));
-			});
+		const TARGET_LIST_ID = '6a488ba39de21b2fd30e246e'; // ID CỦA BẠN
 
-			ws.on('message', (raw) => {
-				const msg = JSON.parse(raw.toString());
-				if (msg.error) {
-					console.error('[Push] ❌ Lỗi từ Privos:', msg.error);
-					reject(new Error(msg.error.message));
-				} else if (msg.result) {
-					console.log(`[Push] ✅ Đã đẩy dữ liệu thành công lên Privos cho ${accountId}!`);
-					resolve(true);
-				}
-				ws.close();
-			});
+		// 1. Lấy Stage ID tương ứng
+		const listDetail = await client.callTool('privos.lists.get', { listId: TARGET_LIST_ID });
+		let stages: any[] = [];
+		if (listDetail?.stages) stages = listDetail.stages;
+		else if (listDetail?.content && Array.isArray(listDetail.content)) {
+			const textBlock = listDetail.content.find((c: any) => c.type === 'text');
+			if (textBlock) {
+				try {
+					const parsed = JSON.parse(textBlock.text);
+					stages = parsed.stages || parsed.list?.stages || [];
+				} catch (e) {}
+			}
+		}
+		const stage = stages.find((s: any) => s.name.toLowerCase().includes(accountId.toLowerCase()));
+		const stageId = stage ? stage._id : null;
 
-			ws.on('error', (err) => {
-				console.error('[Push] WS Error:', err);
-				reject(err);
+		// 2. Lấy các items hiện có để so sánh
+		const getItemsRes = await client.callTool('privos.lists.getItems', { listId: TARGET_LIST_ID, count: 100 });
+		let items: any[] = [];
+		if (getItemsRes?.items) items = getItemsRes.items;
+		else if (Array.isArray(getItemsRes?.content)) {
+			const textBlock = getItemsRes.content.find((c: any) => c.type === 'text');
+			if (textBlock) {
+				try {
+					const parsed = JSON.parse(textBlock.text);
+					items = parsed.items || [];
+				} catch (e) {}
+			}
+		}
+
+		let created = 0, updated = 0;
+
+		// 3. Xử lý Followers
+		if (data.followers !== undefined && data.followers !== null) {
+			const title = `[LinkedIn Followers - ${accountId}] ${data.followers.toLocaleString()}`;
+			const followerJson = JSON.stringify({ type: 'followers', count: data.followers, date: new Date().toISOString().split('T')[0], id: `${accountId}-followers` });
+			
+			const existingFollower = items.find(item => item.title && item.title.includes(`[LinkedIn Followers - ${accountId}]`));
+			if (existingFollower) {
+				await client.callTool('privos.lists.updateItem', { itemId: existingFollower._id, title, description: followerJson });
+				updated++;
+			} else {
+				const createRes = await client.callTool('privos.lists.createItem', { listId: TARGET_LIST_ID, title, description: followerJson });
+				const createdId = getCreatedId(createRes);
+				if (createdId && stageId) await client.callTool('privos.lists.moveItemToStage', { itemId: createdId, stageId });
+				created++;
+			}
+		}
+
+		// 4. Xử lý từng Post
+		const postsArray = Array.isArray(data.posts) ? data.posts : [];
+		for (const post of postsArray) {
+			if (!post.id || !post.id.includes(accountId)) continue;
+			
+			const existing = items.find(item => {
+				try { return JSON.parse(item.description).id === post.id; }
+				catch (e) { return false; }
 			});
 			
-			// Đề phòng timeout
-			setTimeout(() => {
-				ws.close();
-				resolve(false);
-			}, 15000);
-		});
+			const title = `[LinkedIn] ${post.summary.slice(0, 50)}`;
+			const postJson = JSON.stringify(post);
+			
+			if (existing) {
+				await client.callTool('privos.lists.updateItem', { itemId: existing._id, title, description: postJson });
+				updated++;
+			} else {
+				const createRes = await client.callTool('privos.lists.createItem', { listId: TARGET_LIST_ID, title, description: postJson });
+				const createdId = getCreatedId(createRes);
+				if (createdId && stageId) await client.callTool('privos.lists.moveItemToStage', { itemId: createdId, stageId });
+				created++;
+			}
+		}
 
+		console.log(`[Push] ✅ Xong cho ${accountId}: Tạo mới ${created}, Cập nhật ${updated} items.`);
+		client.close();
 	} catch (error) {
 		console.error(`[Push] ❌ Lỗi khi đẩy lên Privos cho ${accountId}:`, error);
 	}
