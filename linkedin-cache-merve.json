@@ -82,7 +82,7 @@
     },
     {
       "id": "merve-linkedin-urn-li-activity-7478077451483467776",
-      "date": "2026-07-02",
+      "date": "2026-07-03",
       "views": 0,
       "reacts": 0,
       "comments": 0,
@@ -142,16 +142,26 @@
     },
     {
       "id": "merve-linkedin-urn-li-activity-7480599147289497600",
-      "date": "2026-07-08",
+      "date": "2026-07-09",
       "views": 0,
       "reacts": 0,
       "comments": 0,
       "reposts": 0,
       "summary": "I have sat in rooms where the \"AI strategy\" was presented for 40 minutes without once mentioning where the AI learns from.The deck was impressive. Eff...",
       "link": "https://www.linkedin.com/feed/update/urn:li:activity:7480599147289497600/"
+    },
+    {
+      "id": "merve-linkedin-urn-li-activity-7480984141866360832",
+      "date": "2026-07-09",
+      "views": 0,
+      "reacts": 0,
+      "comments": 0,
+      "reposts": 0,
+      "summary": "The organizations that take data privacy most seriously often have the least mature AI programs. This sounds contradictory until you understand why.It...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7480984141866360832/"
     }
   ],
-  "lastCrawledAt": "2026-07-09T03:13:02.580Z",
+  "lastCrawledAt": "2026-07-10T03:10:00.883Z",
   "status": "done",
   "followers": null
 }

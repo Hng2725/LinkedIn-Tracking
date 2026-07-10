@@ -32,7 +32,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7477996344842948608",
-      "date": "2026-07-02",
+      "date": "2026-07-03",
       "views": 0,
       "reacts": 3,
       "comments": 0,
@@ -42,7 +42,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7477746714045476864",
-      "date": "2026-07-02",
+      "date": "2026-07-03",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -52,7 +52,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7477398999331676160",
-      "date": "2026-07-02",
+      "date": "2026-07-03",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -62,7 +62,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7476317859686567936",
-      "date": "2026-07-02",
+      "date": "2026-07-03",
       "views": 0,
       "reacts": 0,
       "comments": 0,
@@ -82,16 +82,26 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7480586476200611841",
-      "date": "2026-07-08",
+      "date": "2026-07-09",
       "views": 0,
       "reacts": 0,
       "comments": 0,
       "reposts": 0,
       "summary": "Most enterprise workspaces solve the collaboration problem by asking every team to work in the same format. The consequence is predictable: engineerin...",
       "link": "https://www.linkedin.com/feed/update/urn:li:activity:7480586476200611841/"
+    },
+    {
+      "id": "privos-linkedin-urn-li-activity-7481175897505419264",
+      "date": "2026-07-10",
+      "views": 0,
+      "reacts": 0,
+      "comments": 0,
+      "reposts": 0,
+      "summary": "One of the most consistent challenges enterprises face when adopting AI is the gap between capability and confidence. The most powerful language model...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7481175897505419264/"
     }
   ],
-  "lastCrawledAt": "2026-07-09T03:04:48.271Z",
+  "lastCrawledAt": "2026-07-10T02:49:15.795Z",
   "status": "done",
   "followers": null
 }
