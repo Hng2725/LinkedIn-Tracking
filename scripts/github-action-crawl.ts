@@ -107,7 +107,7 @@ async function pushToPrivos(accountId: string) {
 
 		const TARGET_LIST_ID = '6a488ba39de21b2fd30e246e'; // ID CỦA BẠN
 
-		// 1. Lấy Stage ID tương ứng
+		// 1. Lấy Stage ID tương ứng & 2. Lấy các items hiện có để so sánh
 		const listDetail = await client.callTool('privos.lists.get', { listId: TARGET_LIST_ID });
 		let stages: any[] = [];
 		if (listDetail?.stages) stages = listDetail.stages;
@@ -120,10 +120,7 @@ async function pushToPrivos(accountId: string) {
 				} catch (e) {}
 			}
 		}
-		const stage = stages.find((s: any) => s.name.toLowerCase().includes(accountId.toLowerCase()));
-		const stageId = stage ? stage._id : null;
 
-		// 2. Lấy các items hiện có để so sánh
 		const getItemsRes = await client.callTool('privos.lists.getItems', { listId: TARGET_LIST_ID, count: 100 });
 		let items: any[] = [];
 		if (getItemsRes?.items) items = getItemsRes.items;
@@ -137,6 +134,26 @@ async function pushToPrivos(accountId: string) {
 			}
 		}
 
+		// Tìm stage bằng tên stage trước
+		const stage = stages.find((s: any) => s.name.toLowerCase().includes(accountId.toLowerCase()));
+		let stageId = stage ? stage._id : null;
+
+		// Fallback: Tìm stage bằng cách soi các item đã có (Tương tự như UI)
+		if (!stageId) {
+			const foundItem = items.find(item => {
+				const rawName = (item.name || item.title || '').trim();
+				if (accountId === 'merve') {
+					return rawName === 'Merve linkedin';
+				} else if (accountId === 'privos') {
+					return rawName === 'Privos linkedin';
+				}
+				return false;
+			});
+			if (foundItem && foundItem.stageId) {
+				stageId = foundItem.stageId;
+			}
+		}
+
 		let created = 0, updated = 0;
 
 		// 3. Xử lý Followers
@@ -144,9 +161,13 @@ async function pushToPrivos(accountId: string) {
 			const title = `[LinkedIn Followers - ${accountId}] ${data.followers.toLocaleString()}`;
 			const followerJson = JSON.stringify({ type: 'followers', count: data.followers, date: new Date().toISOString().split('T')[0], id: `${accountId}-followers` });
 			
-			const existingFollower = items.find(item => item.title && item.title.includes(`[LinkedIn Followers - ${accountId}]`));
+			const existingFollower = items.find(item => {
+				const itemName = item.name || item.title || '';
+				return itemName.includes(`[LinkedIn Followers - ${accountId}]`) || itemName.includes(`followers - ${accountId}`);
+			});
+			
 			if (existingFollower) {
-				await client.callTool('privos.lists.updateItem', { itemId: existingFollower._id, title, description: followerJson });
+				await client.callTool('privos.lists.updateItem', { itemId: existingFollower._id, name: title, description: followerJson });
 				updated++;
 			} else {
 				const createRes = await client.callTool('privos.lists.createItem', { listId: TARGET_LIST_ID, title, description: followerJson });
@@ -170,7 +191,7 @@ async function pushToPrivos(accountId: string) {
 			const postJson = JSON.stringify(post);
 			
 			if (existing) {
-				await client.callTool('privos.lists.updateItem', { itemId: existing._id, title, description: postJson });
+				await client.callTool('privos.lists.updateItem', { itemId: existing._id, name: title, description: postJson });
 				updated++;
 			} else {
 				const createRes = await client.callTool('privos.lists.createItem', { listId: TARGET_LIST_ID, title, description: postJson });

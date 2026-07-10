@@ -184,11 +184,11 @@ export default function SocialTrackerApp() {
       // Fallback: discover stage IDs by inspecting the item names (strictly)
       itemsList.forEach((item: any) => {
         if (item.stageId) {
-          const nameLower = (item.name || item.title || '').toLowerCase().trim();
+          const rawName = (item.name || item.title || '').trim();
 
-          if (nameLower.includes('linkedin followers - merve') || nameLower === 'merve' || nameLower === 'test merve' || nameLower === 'merve linkedin') {
+          if (rawName === 'Merve linkedin') {
             if (!mStageId) mStageId = item.stageId;
-          } else if (nameLower.includes('linkedin followers - privos') || nameLower === 'privos' || nameLower === 'test privos' || nameLower === 'privos linkedin') {
+          } else if (rawName === 'Privos linkedin') {
             if (!pStageId) pStageId = item.stageId;
           }
         }
