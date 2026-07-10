@@ -62,7 +62,7 @@
     },
     {
       "id": "merve-linkedin-urn-li-activity-7479889508780535809",
-      "date": "2026-07-07",
+      "date": "2026-07-06",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -72,7 +72,7 @@
     },
     {
       "id": "merve-linkedin-urn-li-activity-7478790924429320192",
-      "date": "2026-07-04",
+      "date": "2026-07-03",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -132,7 +132,7 @@
     },
     {
       "id": "merve-linkedin-urn-li-activity-7480278206969724928",
-      "date": "2026-07-08",
+      "date": "2026-07-07",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -142,7 +142,7 @@
     },
     {
       "id": "merve-linkedin-urn-li-activity-7480599147289497600",
-      "date": "2026-07-09",
+      "date": "2026-07-08",
       "views": 0,
       "reacts": 0,
       "comments": 0,
@@ -159,9 +159,19 @@
       "reposts": 0,
       "summary": "The organizations that take data privacy most seriously often have the least mature AI programs. This sounds contradictory until you understand why.It...",
       "link": "https://www.linkedin.com/feed/update/urn:li:activity:7480984141866360832/"
+    },
+    {
+      "id": "merve-linkedin-urn-li-activity-7481327627488731136",
+      "date": "2026-07-10",
+      "views": 0,
+      "reacts": 4,
+      "comments": 1,
+      "reposts": 0,
+      "summary": "I have had variations of the same conversation three times in the last few months.A CMO - experienced, thoughtful, clearly not someone who avoids tech...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7481327627488731136/"
     }
   ],
-  "lastCrawledAt": "2026-07-10T03:10:00.883Z",
+  "lastCrawledAt": "2026-07-10T19:29:11.132Z",
   "status": "done",
   "followers": null
 }

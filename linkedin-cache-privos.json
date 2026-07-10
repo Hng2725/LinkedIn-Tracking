@@ -2,7 +2,7 @@
   "posts": [
     {
       "id": "privos-linkedin-urn-li-activity-7479768220426764288",
-      "date": "2026-07-07",
+      "date": "2026-07-06",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -12,7 +12,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7478739482389659649",
-      "date": "2026-07-04",
+      "date": "2026-07-03",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -82,7 +82,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7480586476200611841",
-      "date": "2026-07-09",
+      "date": "2026-07-08",
       "views": 0,
       "reacts": 0,
       "comments": 0,
@@ -99,9 +99,19 @@
       "reposts": 0,
       "summary": "One of the most consistent challenges enterprises face when adopting AI is the gap between capability and confidence. The most powerful language model...",
       "link": "https://www.linkedin.com/feed/update/urn:li:activity:7481175897505419264/"
+    },
+    {
+      "id": "privos-linkedin-urn-li-activity-7481268659185819648",
+      "date": "2026-07-10",
+      "views": 0,
+      "reacts": 2,
+      "comments": 0,
+      "reposts": 0,
+      "summary": "Every AI agent runs here. That single architectural decision is what separates a secure enterprise AI deployment from one where security is bolted on ...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7481268659185819648/"
     }
   ],
-  "lastCrawledAt": "2026-07-10T02:49:15.795Z",
+  "lastCrawledAt": "2026-07-10T18:47:33.823Z",
   "status": "done",
   "followers": null
 }
