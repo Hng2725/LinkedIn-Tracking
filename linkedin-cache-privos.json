@@ -12,7 +12,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7478739482389659649",
-      "date": "2026-07-03",
+      "date": "2026-07-04",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -22,7 +22,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7478359887475785728",
-      "date": "2026-07-03",
+      "date": "2026-07-04",
       "views": 0,
       "reacts": 1,
       "comments": 1,
@@ -32,7 +32,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7477996344842948608",
-      "date": "2026-07-03",
+      "date": "2026-07-04",
       "views": 0,
       "reacts": 3,
       "comments": 0,
@@ -42,7 +42,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7477746714045476864",
-      "date": "2026-07-03",
+      "date": "2026-07-04",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -52,7 +52,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7477398999331676160",
-      "date": "2026-07-03",
+      "date": "2026-07-04",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -109,9 +109,19 @@
       "reposts": 0,
       "summary": "Every AI agent runs here. That single architectural decision is what separates a secure enterprise AI deployment from one where security is bolted on ...",
       "link": "https://www.linkedin.com/feed/update/urn:li:activity:7481268659185819648/"
+    },
+    {
+      "id": "privos-linkedin-urn-li-activity-7475145958654369792",
+      "date": "2026-06-27",
+      "views": 0,
+      "reacts": 0,
+      "comments": 0,
+      "reposts": 0,
+      "summary": "🔄 When an employee leaves, what happens to the knowledge they leave behind?In many organizations, critical business knowledge still lives inside indi...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7475145958654369792/"
     }
   ],
-  "lastCrawledAt": "2026-07-10T18:47:33.823Z",
+  "lastCrawledAt": "2026-07-11T18:36:46.395Z",
   "status": "done",
   "followers": null
 }
