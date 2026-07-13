@@ -465,13 +465,13 @@ export default function AIAssistantTab() {
   const goalProgress = goalTarget > 0 ? Math.min(100, Math.round(currentGoalValue / goalTarget * 100)) : 0;
 
   const PLATFORMS = [
-    { id: 'linkedin', label: 'LinkedIn', color: '#0a66c2', icon: <LinkedinOutlined /> },
     { id: 'facebook', label: 'Facebook', color: '#1877f2', icon: <FacebookOutlined /> },
     { id: 'x', label: 'X (Twitter)', color: '#000', icon: <TwitterOutlined /> },
+    { id: 'linkedin', label: 'LinkedIn', color: '#0a66c2', icon: <LinkedinOutlined /> },
   ];
   const ACCOUNTS = [
-    { id: 'privos', label: 'PrivOS AI', avatar: 'https://pbs.twimg.com/profile_images/2013183029779288065/GlhEZQnx_400x400.jpg' },
     { id: 'merve', label: 'Merve S. BUBLIS', avatar: 'https://media.licdn.com/dms/image/v2/D4D03AQFwgjLdgucxVw/profile-displayphoto-scale_400_400/B4DZ3BGvSHHsAk-/0/1777061265216?e=1784764800&v=beta&t=p0YmkCfiXoakcZlBlNj6ZiehKclEdbRmkkPHuu2qRkE' },
+    { id: 'privos', label: 'PrivOS AI', avatar: 'https://pbs.twimg.com/profile_images/2013183029779288065/GlhEZQnx_400x400.jpg' },
   ];
   const renderComparisonPicker = (
     title: string,
@@ -530,7 +530,7 @@ export default function AIAssistantTab() {
 
       {/* ── HEADER: Platform + Account (KPI Dashboard style) ── */}
       <Card style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} bordered={false}>
-        <Row gutter={[24, 16]} align="middle">
+        <Row gutter={[24, 24]} align="middle" justify="space-between">
           <Col xs={24} md={12}>
             <Space direction="vertical" size="small" style={{ width: '100%' }}>
               <Typography.Text type="secondary" strong>Select Platform:</Typography.Text>
