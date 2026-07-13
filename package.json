@@ -13,6 +13,7 @@
     "sandbox:skills:use",
     "sandbox:botkey:push",
     "sandbox:wake",
+    "sandbox:generate",
     "sandbox:ai-chat",
     "sandbox:ai-chat:write"
   ],

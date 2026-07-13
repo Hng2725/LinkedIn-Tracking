@@ -25,6 +25,161 @@ function getIconDataUri(): string | undefined {
 	return `data:${mime};base64,${data}`;
 }
 const appIcon = getIconDataUri();
+type EngagementPost = {
+	id?: string;
+	date?: string;
+	summary?: string;
+	views?: number;
+	reacts?: number;
+	comments?: number;
+	reposts?: number;
+	link?: string;
+};
+
+type EngagementAccountData = {
+	label: string;
+	posts: EngagementPost[];
+};
+
+function sumPosts(posts: EngagementPost[]) {
+	const totals = posts.reduce<{ views: number; reacts: number; comments: number; reposts: number }>((acc, post) => {
+		acc.views += Number(post.views) || 0;
+		acc.reacts += Number(post.reacts) || 0;
+		acc.comments += Number(post.comments) || 0;
+		acc.reposts += Number(post.reposts) || 0;
+		return acc;
+	}, { views: 0, reacts: 0, comments: 0, reposts: 0 });
+	const interactions = totals.reacts + totals.comments + totals.reposts;
+	return {
+		posts: posts.length,
+		...totals,
+		interactions,
+		avgViews: posts.length ? Math.round(totals.views / posts.length) : 0,
+		avgInteractions: posts.length ? Number((interactions / posts.length).toFixed(1)) : 0,
+		engagementRate: totals.views > 0 ? Number(((interactions / totals.views) * 100).toFixed(2)) : 0,
+	};
+}
+
+function buildEngagementPrompt(args: any): string {
+	const question = String(args?.question || '').trim() || 'Analyze LinkedIn engagement and give recommendations.';
+	const accountId = args?.accountId || 'all';
+	const accounts = (args?.accounts || {}) as Record<string, EngagementAccountData>;
+	const lines: string[] = [];
+
+	lines.push('You are the PrivOS AI social media performance analyst.');
+	lines.push('Analyze the real LinkedIn tracking data below. Answer in the same language as the user question.');
+	lines.push('Focus on engagement quality, comparison, likely causes, and concrete next actions.');
+	lines.push('Do not invent missing metrics. If data is missing, say so clearly.');
+	lines.push('');
+	lines.push(`User question: ${question}`);
+	lines.push(`Selected account: ${accountId}`);
+	lines.push('');
+	lines.push('Dataset summary:');
+
+	Object.entries(accounts).forEach(([id, account]) => {
+		const posts = Array.isArray(account?.posts) ? account.posts : [];
+		const summary = sumPosts(posts);
+		lines.push(`\nAccount ${id} (${account?.label || id})`);
+		lines.push(`Totals: posts=${summary.posts}, views=${summary.views}, reacts=${summary.reacts}, comments=${summary.comments}, reposts=${summary.reposts}, interactions=${summary.interactions}, avgViews=${summary.avgViews}, avgInteractions=${summary.avgInteractions}, engagementRate=${summary.engagementRate}%`);
+		const topPosts = [...posts]
+			.sort((a, b) => ((Number(b.reacts) || 0) + (Number(b.comments) || 0) + (Number(b.reposts) || 0)) - ((Number(a.reacts) || 0) + (Number(a.comments) || 0) + (Number(a.reposts) || 0)))
+			.slice(0, 8);
+		topPosts.forEach((post, index) => {
+			lines.push(`${index + 1}. ${post.date || 'unknown date'} | views=${Number(post.views) || 0}, reacts=${Number(post.reacts) || 0}, comments=${Number(post.comments) || 0}, reposts=${Number(post.reposts) || 0} | ${String(post.summary || '').slice(0, 280)}`);
+		});
+	});
+
+	lines.push('\nRequired response format:');
+	lines.push('1. Short direct answer to the user question.');
+	lines.push('2. Comparison between PrivOS and Merve when relevant.');
+	lines.push('3. Key observations from posts/comments/reacts/reposts/views.');
+	lines.push('4. Practical recommendations and next content actions.');
+	return lines.join('\n');
+}
+
+async function getPrivosAccessToken(): Promise<string> {
+	const privosUrl = process.env.PRIVOS_URL;
+	const clientId = process.env.CLIENT_ID;
+	const clientSecret = process.env.CLIENT_SECRET;
+	if (!privosUrl || !clientId || !clientSecret) throw new Error('Missing PrivOS OAuth credentials');
+	const res = await fetch(`${privosUrl}/oauth/token`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		body: `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`,
+	});
+	if (!res.ok) throw new Error(`OAuth token failed: ${res.status} ${res.statusText}`);
+	const data: any = await res.json();
+	if (!data.access_token) throw new Error('No access_token in OAuth response');
+	return data.access_token;
+}
+
+function extractSandboxText(data: any): string {
+	if (!data) return '';
+	if (typeof data.text === 'string') return data.text;
+	if (typeof data.result === 'string') return data.result;
+	if (typeof data.message === 'string' && data.status !== 'running') return data.message;
+	if (Array.isArray(data.json)) {
+		const parts: string[] = [];
+		data.json.forEach((event: any) => {
+			if (typeof event?.text === 'string') parts.push(event.text);
+			if (typeof event?.content === 'string') parts.push(event.content);
+			if (typeof event?.result === 'string') parts.push(event.result);
+		});
+		return parts.join('\n').trim();
+	}
+	if (data.body) return extractSandboxText(data.body);
+	return '';
+}
+
+async function startPrivosSandboxAI(roomId: string, prompt: string): Promise<{ attemptId?: string; answer?: string }> {
+	const privosUrl = process.env.PRIVOS_URL;
+	if (!privosUrl) throw new Error('Missing PRIVOS_URL');
+	const token = await getPrivosAccessToken();
+	const startRes = await fetch(`${privosUrl}/api/v1/agents.sandbox.generate-async`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+		body: JSON.stringify({ roomId, prompt }),
+	});
+	if (!startRes.ok) throw new Error(`Sandbox generate failed: ${startRes.status} ${startRes.statusText}`);
+	const startData: any = await startRes.json();
+	const attemptId = startData?.attemptId || startData?.body?.attemptId || startData?.id;
+	if (attemptId) return { attemptId };
+	const answer = extractSandboxText(startData);
+	if (answer) return { answer };
+	throw new Error('Sandbox generate response did not include attemptId');
+}
+
+async function pollPrivosSandboxAI(roomId: string, attemptId: string): Promise<{ status: string; answer?: string }> {
+	const privosUrl = process.env.PRIVOS_URL;
+	if (!privosUrl) throw new Error('Missing PRIVOS_URL');
+	const token = await getPrivosAccessToken();
+	const pollUrl = `${privosUrl}/api/v1/agents.sandbox.attempt-status?roomId=${encodeURIComponent(roomId)}&attemptId=${encodeURIComponent(attemptId)}&partial=1`;
+	const pollRes = await fetch(pollUrl, { headers: { Authorization: `Bearer ${token}` } });
+	if (!pollRes.ok) throw new Error(`Sandbox poll failed: ${pollRes.status} ${pollRes.statusText}`);
+	const pollData: any = await pollRes.json();
+	const status = pollData?.status || pollData?.body?.status || 'running';
+	const answer = extractSandboxText(pollData);
+	if (status === 'failed' || status === 'cancelled') throw new Error(`Sandbox attempt ${status}`);
+	if (status === 'completed' || status === 'complete' || pollData?.completed) return { status: 'completed', answer };
+	return { status: 'running', answer };
+}
+
+
+async function pollLinkedInEngagementAnalysis(args: any) {
+	const roomId = args?.roomId;
+	const attemptId = args?.attemptId;
+	if (!roomId) throw new Error('Missing roomId');
+	if (!attemptId) throw new Error('Missing attemptId');
+	const result = await pollPrivosSandboxAI(roomId, attemptId);
+	return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+}
+async function analyzeLinkedInEngagement(args: any) {
+	const roomId = args?.roomId;
+	if (!roomId) throw new Error('Missing roomId');
+	const prompt = buildEngagementPrompt(args);
+	const result = await startPrivosSandboxAI(roomId, prompt);
+	return { content: [{ type: 'text', text: JSON.stringify({ status: result.answer ? 'completed' : 'running', answer: result.answer, attemptId: result.attemptId }) }] };
+}
 
 /** Cache the built UI HTML — invalidated when dist changes (dev watch mode) */
 let cachedUiHtml: string | null = null;
@@ -99,11 +254,45 @@ export async function handleMcpMessage(method: string, _id: number, params: any)
 						title: 'Trigger Crawl',
 						description: 'Start the background crawl process',
 						inputSchema: { type: 'object', properties: { url: { type: 'string' }, accountId: { type: 'string' } } }
+					},
+					{
+						name: 'analyze_linkedin_engagement',
+						title: 'Analyze LinkedIn Engagement',
+						description: 'Use PrivOS AI to analyze LinkedIn post engagement data and provide comparison, insights, and recommendations.',
+						inputSchema: {
+							type: 'object',
+							properties: {
+								roomId: { type: 'string' },
+								question: { type: 'string' },
+								accountId: { type: 'string' },
+								accounts: { type: 'object' }
+							},
+							required: ['roomId', 'question', 'accounts']
+						}
+					},
+					{
+						name: 'poll_linkedin_engagement_analysis',
+						title: 'Poll LinkedIn Engagement Analysis',
+						description: 'Poll a running PrivOS AI LinkedIn engagement analysis attempt.',
+						inputSchema: {
+							type: 'object',
+							properties: {
+								roomId: { type: 'string' },
+								attemptId: { type: 'string' }
+							},
+							required: ['roomId', 'attemptId']
+						}
 					}
 				],
 			};
 
 		case 'tools/call':
+			if (params?.name === 'analyze_linkedin_engagement') {
+				return analyzeLinkedInEngagement(params?.arguments || {});
+			}
+			if (params?.name === 'poll_linkedin_engagement_analysis') {
+				return pollLinkedInEngagementAnalysis(params?.arguments || {});
+			}
 			if (params?.name === 'trigger_crawl_linkedin') {
 				const url = params?.arguments?.url;
 				const accountId = params?.arguments?.accountId || 'default';
