@@ -72,8 +72,15 @@ const normalizePost = (post: any, item: any): EngagementPost | null => {
     createdAt: post.createdAt || item.createdAt,
   };
 };
+type EngagementTotals = {
+  views: number;
+  reacts: number;
+  comments: number;
+  reposts: number;
+};
+
 const sumPosts = (posts: EngagementPost[]) => {
-  const totals = posts.reduce((acc, post) => {
+  const totals = posts.reduce<EngagementTotals>((acc, post) => {
     acc.views += Number(post.views) || 0;
     acc.reacts += Number(post.reacts) || 0;
     acc.comments += Number(post.comments) || 0;
