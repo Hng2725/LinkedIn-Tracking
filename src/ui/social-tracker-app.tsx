@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { usePrivosContext, useLists, usePrivosApp } from '@privos/app-react';
 import { Card, Avatar, Typography, DatePicker, Row, Col, Statistic, List, Space, Tag, Radio, Select, Divider, Segmented, Tabs, Input, Button } from 'antd';
-import { UserOutlined, EyeOutlined, LikeOutlined, CommentOutlined, LinkOutlined, CrownOutlined, ThunderboltOutlined, FacebookOutlined, TwitterOutlined, LinkedinOutlined, DashboardOutlined, RobotOutlined, SendOutlined, SyncOutlined } from '@ant-design/icons';
+import { UserOutlined, EyeOutlined, LikeOutlined, CommentOutlined, LinkOutlined, CrownOutlined, ThunderboltOutlined, FacebookOutlined, TwitterOutlined, LinkedinOutlined, DashboardOutlined, BarChartOutlined, RobotOutlined, SendOutlined, SyncOutlined } from '@ant-design/icons';
 import { AreaChart, Area, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
-import AIAssistantTab from './ai-assistant-tab';
+import AnalysisTab from './analysis-tab';
+import AIAssistantChatTab from './ai-assistant-chat-tab';
 import dayjs, { Dayjs } from 'dayjs';
 
 
@@ -74,6 +75,103 @@ const POSTS_DB: Record<string, any[]> = {
   'privos-linkedin': [],
 };
 
+const TRACKING_RETENTION_DAYS = 35;
+const TRACKING_PAGE_SIZE = 100;
+
+const parseListItemsResponse = (res: any): any[] => {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.items)) return res.items;
+  if (Array.isArray(res?.content)) {
+    const textBlock = res.content.find((c: any) => c.type === 'text' && c.text);
+    if (textBlock) {
+      try {
+        const parsed = JSON.parse(textBlock.text);
+        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed?.items)) return parsed.items;
+      } catch (e) { }
+    }
+    if (res.content.every((c: any) => c?._id)) return res.content;
+  }
+  return [];
+};
+
+const fetchAllListItems = async (app: any, listId: string): Promise<any[]> => {
+  const allItems: any[] = [];
+  let offset = 0;
+
+  while (true) {
+    const res = await app.callServerTool({
+      name: 'privos.lists.getItems',
+      arguments: { listId, offset, count: TRACKING_PAGE_SIZE, sortBy: 'createdAt', sortOrder: 'desc' }
+    });
+    const pageItems = parseListItemsResponse(res);
+    allItems.push(...pageItems);
+    if (pageItems.length < TRACKING_PAGE_SIZE) break;
+    offset += pageItems.length;
+  }
+
+  return allItems;
+};
+
+const normalizeTrackingItemName = (item: any) => String(item?.name || item?.title || '').trim().toLowerCase();
+const isTrackingStageMarker = (item: any) => {
+  const name = normalizeTrackingItemName(item);
+  return name === 'privos linkedin' || name === 'merve linkedin';
+};
+const isNumericFollowerItem = (item: any) => /^\d+$/.test(String(item?.name || item?.title || '').trim());
+const parseTrackingDescription = (item: any) => {
+  if (!item?.description) return null;
+  try {
+    return JSON.parse(item.description);
+  } catch (e) {
+    return null;
+  }
+};
+const isFollowerTrackingItem = (item: any) => {
+  if (isNumericFollowerItem(item)) return true;
+  const parsed = parseTrackingDescription(item);
+  return !!(parsed && !Array.isArray(parsed) && typeof parsed === 'object' && parsed.type === 'followers');
+};
+const getTrackingPostDates = (item: any): Dayjs[] => {
+  const parsed = parseTrackingDescription(item);
+  const values = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [item];
+
+  return values
+    .filter((value: any) => value && value.type !== 'followers')
+    .map((value: any) => dayjs(value.date || value.createdAt || item.createdAt))
+    .filter((value: Dayjs) => value.isValid());
+};
+const shouldDeleteOldTrackingPost = (item: any, cutoffStart: Dayjs) => {
+  if (!item?._id || !item.stageId) return false;
+  if (isTrackingStageMarker(item) || isFollowerTrackingItem(item)) return false;
+
+  const postDates = getTrackingPostDates(item);
+  if (postDates.length === 0) return false;
+
+  return postDates.every((postDate) => postDate.endOf('day').isBefore(cutoffStart));
+};
+const cleanupOldTrackingPosts = async (app: any, items: any[], stageIds: string[]) => {
+  const stageSet = new Set(stageIds.filter(Boolean));
+  if (stageSet.size === 0) return 0;
+
+  const cutoffStart = dayjs().subtract(TRACKING_RETENTION_DAYS, 'day').startOf('day');
+  const itemIds = items
+    .filter((item) => stageSet.has(item.stageId))
+    .filter((item) => shouldDeleteOldTrackingPost(item, cutoffStart))
+    .map((item) => item._id)
+    .filter(Boolean);
+
+  for (let i = 0; i < itemIds.length; i += TRACKING_PAGE_SIZE) {
+    const batch = itemIds.slice(i, i + TRACKING_PAGE_SIZE);
+    // eslint-disable-next-line no-await-in-loop
+    await app.callServerTool({
+      name: 'privos.lists.deleteItems',
+      arguments: { itemIds: batch }
+    });
+  }
+
+  return itemIds.length;
+};
 export default function SocialTrackerApp() {
   const { roomId } = usePrivosContext();
   const { data: lists, loading: listsLoading } = useLists(roomId);
@@ -137,39 +235,17 @@ export default function SocialTrackerApp() {
         }
       }
       targetList.stages = stages;
-
-      return app.callServerTool({
-        name: 'privos.lists.getItems',
-        arguments: { listId: targetList._id, sortBy: 'createdAt', sortOrder: 'desc' }
-      });
-    }).then((res: any) => {
-      let itemsList: any[] = [];
-
-      if (res?.items) {
-        itemsList = res.items;
-      } else if (Array.isArray(res?.content)) {
-        const textBlock = res.content.find((c: any) => c.type === 'text' && c.text);
-        if (textBlock) {
-          try {
-            const parsed = JSON.parse(textBlock.text);
-            itemsList = parsed?.items || (Array.isArray(parsed) ? parsed : []);
-          } catch (e) {
-            itemsList = [];
-          }
-        }
-        if (itemsList.length === 0 && res.content.every((c: any) => c._id)) {
-          itemsList = res.content;
-        }
-      } else if (Array.isArray(res)) {
-        itemsList = res;
-      }
+      return fetchAllListItems(app, targetList._id);
+    }).then(async (loadedItems: any[]) => {
+      let itemsList: any[] = loadedItems;
 
       setDebugInfo(`✅ getItems: parsed items=${itemsList.length}. Đầu: ${itemsList.slice(0, 8).map(i => `"${i.name || i.title}"`).join(', ')}`);
       setLatestItems(itemsList.slice(0, 5).map((i: any) => `${i.name || i.title}`));
-
       // Find the target stage ID
       let pStageId: string | null = null;
       let mStageId: string | null = null;
+      let markerPStageId: string | null = null;
+      let markerMStageId: string | null = null;
 
       const stageNames = (targetList.stages || []).map((s: any) => `"${s.name}"`).join(', ');
 
@@ -181,24 +257,36 @@ export default function SocialTrackerApp() {
         if (mStage) mStageId = mStage._id;
       }
 
-      // Fallback: discover stage IDs by inspecting the item names (strictly)
+      // Cleanup discovers stage IDs only from marker items, not from stage names.
       itemsList.forEach((item: any) => {
-        if (item.stageId) {
-          const rawName = (item.name || item.title || '').trim();
-
-          if (rawName === 'Merve linkedin') {
-            if (!mStageId) mStageId = item.stageId;
-          } else if (rawName === 'Privos linkedin') {
-            if (!pStageId) pStageId = item.stageId;
-          }
-        }
+        if (!item.stageId) return;
+        const itemName = normalizeTrackingItemName(item);
+        if (itemName === 'merve linkedin') markerMStageId = item.stageId;
+        if (itemName === 'privos linkedin') markerPStageId = item.stageId;
       });
+      if (!pStageId) pStageId = markerPStageId;
+      if (!mStageId) mStageId = markerMStageId;
 
+      const cleanupStageIds: string[] = [];
+      if (markerPStageId) cleanupStageIds.push(markerPStageId);
+      if (markerMStageId) cleanupStageIds.push(markerMStageId);
+      let deletedOldPosts = 0;
+      try {
+        deletedOldPosts = await cleanupOldTrackingPosts(app, itemsList, cleanupStageIds);
+      } catch (cleanupErr: any) {
+        setDebugInfo(prev => prev + ` | Cleanup failed: ${cleanupErr?.message || JSON.stringify(cleanupErr)}`);
+      }
+      if (deletedOldPosts > 0) {
+        const cutoffStart = dayjs().subtract(TRACKING_RETENTION_DAYS, 'day').startOf('day');
+        const cleanupStageSet = new Set(cleanupStageIds);
+        itemsList = itemsList.filter((item) => !cleanupStageSet.has(item.stageId) || !shouldDeleteOldTrackingPost(item, cutoffStart));
+        setLatestItems(itemsList.slice(0, 5).map((i: any) => `${i.name || i.title}`));
+      }
       setPrivosStageId(pStageId);
       setMerveStageId(mStageId);
       setMerveItem(null);
 
-      setDebugInfo(prev => prev + ` | ✅ List "${targetList.name}". Stages: ${stageNames}. pStage=${pStageId?.slice(-4) || 'null'}, mStage=${mStageId?.slice(-4) || 'null'}`);
+      setDebugInfo(prev => prev + ` | ✅ List "${targetList.name}". Stages: ${stageNames}. pStage=${pStageId?.slice(-4) || 'null'}, mStage=${mStageId?.slice(-4) || 'null'}, cleanupDeleted=${deletedOldPosts}`);
 
       setDummyItem(pStageId ? { _id: pStageId, isStage: true } : itemsList[0]);
 
@@ -362,7 +450,11 @@ export default function SocialTrackerApp() {
           // For each post, we create or update an item in chunks to prevent timeout
           const CHUNK_SIZE = 5;
           let processedCount = 0;
-          const validPosts = postsArray.filter((p: any) => p.id?.includes(selectedAccId));
+          const syncCutoffStart = dayjs().subtract(TRACKING_RETENTION_DAYS, 'day').startOf('day');
+          const validPosts = postsArray.filter((p: any) => {
+            const postDate = dayjs(p.date || p.createdAt);
+            return p.id?.includes(selectedAccId) && postDate.isValid() && !postDate.endOf('day').isBefore(syncCutoffStart);
+          });
 
           for (let i = 0; i < validPosts.length; i += CHUNK_SIZE) {
             const chunk = validPosts.slice(i, i + CHUNK_SIZE);
@@ -945,10 +1037,17 @@ export default function SocialTrackerApp() {
             )
           },
           {
-            key: 'chat',
+            key: 'analysis',
+            label: <span style={{ fontSize: 16 }}><BarChartOutlined /> Analysis</span>,
+            children: (
+              <AnalysisTab />
+            )
+          },
+          {
+            key: 'ai-assistant',
             label: <span style={{ fontSize: 16 }}><RobotOutlined /> AI Assistant</span>,
             children: (
-              <AIAssistantTab />
+              <AIAssistantChatTab />
             )
           }
         ]}

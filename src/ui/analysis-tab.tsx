@@ -1,16 +1,15 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePrivosContext, useLists, usePrivosApp } from '@privos/app-react';
 import {
-  Card, Avatar, Typography, Input, Button, Row, Col,
-  Progress, Tag, Divider, Tooltip, DatePicker, Radio,
+  Card, Avatar, Typography, Button, Row, Col,
+  Progress, Tag, Tooltip, DatePicker, Radio,
   Space, Modal, Slider, InputNumber, notification, Segmented
 } from 'antd';
 import {
-  RobotOutlined, SendOutlined, UserOutlined,
   ArrowUpOutlined, ArrowDownOutlined, MinusOutlined,
   EyeOutlined, LikeOutlined, CommentOutlined, FileTextOutlined,
   DownloadOutlined, AimOutlined,
-  CheckCircleOutlined, SyncOutlined, BulbOutlined,
+  CheckCircleOutlined, SyncOutlined,
   LinkedinOutlined, FacebookOutlined, TwitterOutlined
 } from '@ant-design/icons';
 import {
@@ -20,7 +19,7 @@ import {
 } from 'recharts';
 import dayjs, { Dayjs } from 'dayjs';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
 // ─── MOCK DATA ───────────────────────────────────────────────────────────────
 const MOCK_THIS_WEEK = {
@@ -177,28 +176,6 @@ function scoreLabel(score: number) {
   return 'Needs improvement';
 }
 
-function generateAIComment(thisWeek: typeof MOCK_THIS_WEEK, lastWeek: typeof MOCK_LAST_WEEK, score: number): string {
-  const viewGrowth = ((thisWeek.views - lastWeek.views) / (lastWeek.views || 1) * 100).toFixed(1);
-  const reactGrowth = ((thisWeek.reacts - lastWeek.reacts) / (lastWeek.reacts || 1) * 100).toFixed(1);
-  const lines: string[] = [];
-
-  lines.push('Weekly analysis score: ' + score + '/100\n');
-  if (thisWeek.views > lastWeek.views) lines.push('Views increased by ' + viewGrowth + '% vs the previous week (' + thisWeek.views.toLocaleString() + ' vs ' + lastWeek.views.toLocaleString() + ').');
-  else lines.push('Views decreased by ' + Math.abs(Number(viewGrowth)) + '% vs the previous week. Try improving headlines and posting time.');
-  if (thisWeek.engagementRate > 5) lines.push('Engagement rate is strong at ' + thisWeek.engagementRate + '%.');
-  else if (thisWeek.engagementRate >= 2) lines.push('Engagement rate is moderate at ' + thisWeek.engagementRate + '%. Add a question or CTA to invite comments.');
-  else lines.push('Engagement rate is low at ' + thisWeek.engagementRate + '%. Focus on clearer CTAs and relevant topics.');
-  if (thisWeek.posts >= 3) lines.push('You posted ' + thisWeek.posts + ' times this week. Posting frequency is healthy.');
-  else lines.push('You posted ' + thisWeek.posts + ' times this week. Aim for 3-4 posts per week for better reach.');
-  if (Number(reactGrowth) > 0) lines.push('Reacts increased by ' + reactGrowth + '%. The content is resonating better with the audience.');
-  lines.push('\nImprovement ideas for next week:');
-  if (thisWeek.posts < 3) lines.push('- Increase posting frequency to 3-4 posts per week');
-  if (thisWeek.engagementRate < 5) lines.push('- Add a question, poll, or CTA at the end of each post');
-  if (thisWeek.avgViews < 1000) lines.push('- Test posting during high-activity windows');
-  lines.push('- Use focused hashtags such as #AI #Technology #Innovation');
-  return lines.join('\n');
-}
-
 function buildRadarData(periodA: typeof MOCK_THIS_WEEK, periodB: typeof MOCK_LAST_WEEK) {
   const scalePair = (a: number, b: number) => {
     const max = Math.max(a, b);
@@ -280,14 +257,11 @@ const CustomBarTooltip = ({ active, payload, label }: any) => {
 };
 
 // MAIN COMPONENT
-export default function AIAssistantTab() {
+export default function AnalysisTab() {
   const { roomId } = usePrivosContext();
   const { data: lists } = useLists(roomId);
   const app = usePrivosApp();
   const [activeAccount, setActiveAccount] = useState<'privos' | 'merve'>('privos');
-  const [chatMessages, setChatMessages] = useState<{ id: number; sender: 'ai' | 'user'; text: string; typing?: boolean }[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [goalMetric, setGoalMetric] = useState<GoalMetric>('reacts');
   const [goalTarget, setGoalTarget] = useState(100);
@@ -297,7 +271,6 @@ export default function AIAssistantTab() {
   const [comparisonModeB, setComparisonModeB] = useState<ComparisonViewMode>('range');
   const [comparisonRangeA, setComparisonRangeA] = useState<ComparisonRange>([dayjs().subtract(6, 'day'), dayjs()]);
   const [comparisonRangeB, setComparisonRangeB] = useState<ComparisonRange>([dayjs().subtract(13, 'day'), dayjs().subtract(7, 'day')]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const thisWeek = activeAccount === 'privos' ? MOCK_PRIVOS.thisWeek : MOCK_MERVE.thisWeek;
   const lastWeek = activeAccount === 'privos' ? MOCK_PRIVOS.lastWeek : MOCK_MERVE.lastWeek;
   const accountPosts = realPostsByAccount[activeAccount];
@@ -394,55 +367,6 @@ export default function AIAssistantTab() {
     });
     return () => { cancelled = true; };
   }, [lists, app]);
-  // Auto-init AI message when account changes
-  useEffect(() => {
-    const aiIntro = generateAIComment(thisWeek, lastWeek, score);
-    setChatMessages([
-      {
-        id: 1,
-        sender: 'ai',
-        text: aiIntro,
-      },
-    ]);
-  }, [activeAccount]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
-
-  const simulateAIReply = (userMsg: string) => {
-    setIsTyping(true);
-    const lower = userMsg.toLowerCase();
-    let reply = '';
-
-    if (lower.includes('view')) {
-      reply = 'Views update:\n\nThis week reached **' + thisWeek.views.toLocaleString() + ' views**, a ' + ((thisWeek.views - lastWeek.views) / lastWeek.views * 100).toFixed(1) + '% change vs the previous week.\n\nTo increase views:\n- Post during high-activity windows\n- Use images or video when possible\n- Make the headline specific and outcome-oriented';
-    } else if (lower.includes('react') || lower.includes('like') || lower.includes('engagement')) {
-      reply = 'Engagement update:\n\nYour engagement rate is **' + thisWeek.engagementRate + '%**.\n\nTo improve engagement:\n- Add a question at the end of each post\n- Tag relevant people when appropriate\n- Share a clear point of view, not only information';
-    } else if (lower.includes('post') || lower.includes('content')) {
-      reply = 'Content update:\n\nYou posted **' + thisWeek.posts + ' posts** this week. ' + (thisWeek.posts >= 3 ? 'Posting frequency is healthy.' : 'Aim for 3-4 posts per week.') + '\n\nContent ideas:\n- Practical case studies\n- Product or company behind-the-scenes\n- Polls or short surveys\n- AI and technology trends';
-    } else if (lower.includes('score') || lower.includes('health')) {
-      reply = 'Health Score: **' + score + '/100** (' + scoreLabel(score) + ')\n\nBreakdown:\n' + breakdown.map(b => '- ' + b.label + ': ' + b.earned + '/' + b.max + 'pts - ' + b.note).join('\n') + '\n\nFastest improvement path: ' + (score < 70 ? 'increase posting frequency and add CTAs.' : 'keep momentum and test carousel-style content.');
-    } else if (lower.includes('compare') || lower.includes('merve') || lower.includes('privos')) {
-      reply = 'Account comparison:\n\n**PrivOS LinkedIn**: ' + MOCK_PRIVOS.thisWeek.posts + ' posts | ' + MOCK_PRIVOS.thisWeek.views.toLocaleString() + ' views | ' + MOCK_PRIVOS.thisWeek.engagementRate + '% engagement\n\n**Merve LinkedIn**: ' + MOCK_MERVE.thisWeek.posts + ' posts | ' + MOCK_MERVE.thisWeek.views.toLocaleString() + ' views | ' + MOCK_MERVE.thisWeek.engagementRate + '% engagement\n\nMerve is currently stronger on views, while PrivOS has a higher engagement rate.';
-    } else {
-      reply = 'I understand your question: "' + userMsg + '"\n\nBased on this week data for **' + (activeAccount === 'privos' ? 'PrivOS' : 'Merve') + '**:\n- Health Score: ' + score + '/100\n- Views: ' + thisWeek.views.toLocaleString() + ' (' + (thisWeek.views > lastWeek.views ? 'up' : 'down') + ' vs previous week)\n- Engagement: ' + thisWeek.engagementRate + '%\n\nYou can ask about views, reacts, posts, health score, or account comparison.';
-    }
-
-    setTimeout(() => {
-      setChatMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: reply }]);
-      setIsTyping(false);
-    }, 1200);
-  };
-
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
-    const userMsg = inputValue.trim();
-    setChatMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: userMsg }]);
-    setInputValue('');
-    simulateAIReply(userMsg);
-  };
-
   const handleExportPDF = () => {
     notification.success({
       message: 'PDF report exported',
@@ -527,8 +451,7 @@ export default function AIAssistantTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-
-      {/* ── HEADER: Platform + Account (KPI Dashboard style) ── */}
+      {/* HEADER: Platform + Account */}
       <Card style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} bordered={false}>
         <Row gutter={[24, 24]} align="middle" justify="space-between">
           <Col xs={24} md={12}>
@@ -575,7 +498,7 @@ export default function AIAssistantTab() {
         </Row>
       </Card>
 
-      {/* ── SECTION 1: Weekly Stats Comparison ── */}
+      {/* SECTION 1: Engagement Comparison */}
       <Card
         style={{ borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.07)', border: 'none' }}
         bodyStyle={{ padding: '20px 24px' }}
@@ -602,14 +525,14 @@ export default function AIAssistantTab() {
             </Col>
           </Row>
         </div>
-        {/* Stat Cards */}
+
         <div style={{ clear: 'both', marginTop: 0, marginBottom: 24, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
           {[
-            { label: 'Posts', cur: comparisonThisWeek.posts, prev: comparisonLastWeek.posts, icon: <FileTextOutlined />, color: '#722ed1', unit: 'posts' },
-            { label: 'Views', cur: comparisonThisWeek.views, prev: comparisonLastWeek.views, icon: <EyeOutlined />, color: '#1890ff', unit: 'views' },
-            { label: 'Reacts', cur: comparisonThisWeek.reacts, prev: comparisonLastWeek.reacts, icon: <LikeOutlined />, color: '#52c41a', unit: 'reacts' },
-            { label: 'Comments', cur: comparisonThisWeek.comments, prev: comparisonLastWeek.comments, icon: <CommentOutlined />, color: '#faad14', unit: 'comments' },
-            { label: 'Reposts', cur: comparisonThisWeek.reposts, prev: comparisonLastWeek.reposts, icon: <SyncOutlined />, color: '#eb2f96', unit: 'reposts' },
+            { label: 'Posts', cur: comparisonThisWeek.posts, prev: comparisonLastWeek.posts, icon: <FileTextOutlined />, color: '#722ed1' },
+            { label: 'Views', cur: comparisonThisWeek.views, prev: comparisonLastWeek.views, icon: <EyeOutlined />, color: '#1890ff' },
+            { label: 'Reacts', cur: comparisonThisWeek.reacts, prev: comparisonLastWeek.reacts, icon: <LikeOutlined />, color: '#52c41a' },
+            { label: 'Comments', cur: comparisonThisWeek.comments, prev: comparisonLastWeek.comments, icon: <CommentOutlined />, color: '#faad14' },
+            { label: 'Reposts', cur: comparisonThisWeek.reposts, prev: comparisonLastWeek.reposts, icon: <SyncOutlined />, color: '#eb2f96' },
           ].map(item => (
             <div key={item.label}>
               <div style={{
@@ -633,7 +556,6 @@ export default function AIAssistantTab() {
           ))}
         </div>
 
-        {/* Bar Chart + Radar */}
         <Row gutter={[24, 24]}>
           <Col xs={24} md={15}>
             <Text strong style={{ display: 'block', marginBottom: 12, color: '#555' }}>Comparison chart</Text>
@@ -666,7 +588,7 @@ export default function AIAssistantTab() {
         </Row>
       </Card>
 
-      {/* ── SECTION 2: Weekly Health Score ── */}
+      {/* SECTION 2: Weekly Health Score */}
       <Card
         style={{ borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.07)', border: 'none' }}
         bodyStyle={{ padding: '20px 24px' }}
@@ -684,18 +606,13 @@ export default function AIAssistantTab() {
         </div>
 
         <Row gutter={[32, 24]} align="middle">
-          {/* Score Circle */}
           <Col xs={24} md={8} style={{ textAlign: 'center' }}>
             <div style={{ position: 'relative', display: 'inline-block' }}>
               <Progress
                 type="circle"
                 percent={score}
                 size={170}
-                strokeColor={{
-                  '0%': '#ff4d4f',
-                  '50%': '#faad14',
-                  '100%': '#52c41a',
-                }}
+                strokeColor={{ '0%': '#ff4d4f', '50%': '#faad14', '100%': '#52c41a' }}
                 strokeWidth={10}
                 trailColor="#f0f0f0"
                 format={() => (
@@ -707,10 +624,7 @@ export default function AIAssistantTab() {
               />
             </div>
             <div style={{ marginTop: 16 }}>
-              <Tag
-                color={score >= 75 ? 'success' : score >= 50 ? 'warning' : 'error'}
-                style={{ fontSize: 14, padding: '4px 16px', borderRadius: 20, fontWeight: 600 }}
-              >
+              <Tag color={score >= 75 ? 'success' : score >= 50 ? 'warning' : 'error'} style={{ fontSize: 14, padding: '4px 16px', borderRadius: 20, fontWeight: 600 }}>
                 {scoreLabel(score)}
               </Tag>
             </div>
@@ -721,19 +635,13 @@ export default function AIAssistantTab() {
                   Goal: {goalTarget.toLocaleString()} {activeGoalConfig.unit}
                 </Text>
                 <div style={{ marginTop: 4 }}>
-                  <Progress
-                    percent={goalProgress}
-                    size="small"
-                    strokeColor="#52c41a"
-                    showInfo={false}
-                  />
+                  <Progress percent={goalProgress} size="small" strokeColor="#52c41a" showInfo={false} />
                   <Text style={{ fontSize: 11, color: '#666' }}>{goalProgress}% of goal - current {activeGoalConfig.label.toLowerCase()}: {currentGoalValue.toLocaleString()}</Text>
                 </div>
               </div>
             )}
           </Col>
 
-          {/* Breakdown */}
           <Col xs={24} md={16}>
             <Text strong style={{ color: '#555', display: 'block', marginBottom: 14 }}>Score breakdown:</Text>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -758,7 +666,6 @@ export default function AIAssistantTab() {
               ))}
             </div>
 
-            {/* Scoring Rules Collapse */}
             <div style={{ marginTop: 16, background: '#f8f9ff', borderRadius: 10, padding: '12px 16px', border: '1px solid #e8ecff' }}>
               <Text strong style={{ fontSize: 12, color: '#666' }}>Scoring rules:</Text>
               <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
@@ -777,135 +684,7 @@ export default function AIAssistantTab() {
           </Col>
         </Row>
       </Card>
-
-      {/* ── SECTION 3: Privos AI Chatbot ── */}
-      <Card
-        style={{ borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.07)', border: 'none' }}
-        bodyStyle={{ padding: 0 }}
-      >
-        {/* Chat Header */}
-        <div style={{
-          padding: '18px 24px',
-          background: 'linear-gradient(135deg, #1890ff 0%, #722ed1 100%)',
-          borderRadius: '16px 16px 0 0',
-          display: 'flex',
-          alignItems: 'center',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 44, height: 44, background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <RobotOutlined style={{ fontSize: 22, color: '#fff' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Privos AI Assistant</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 7, height: 7, background: '#73d13d', borderRadius: '50%', display: 'inline-block' }} />
-                Online - Analyzing real data
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Messages */}
-        <div style={{ height: 380, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16, background: '#fafbff' }}>
-          {chatMessages.map(msg => (
-            <div key={msg.id} style={{ display: 'flex', gap: 10, flexDirection: msg.sender === 'user' ? 'row-reverse' : 'row' }}>
-              <Avatar
-                size={34}
-                icon={msg.sender === 'user' ? <UserOutlined /> : <RobotOutlined />}
-                style={{
-                  background: msg.sender === 'user' ? '#52c41a' : 'linear-gradient(135deg,#1890ff,#722ed1)',
-                  flexShrink: 0,
-                  fontSize: 14,
-                }}
-              />
-              <div style={{
-                maxWidth: '75%',
-                padding: '12px 16px',
-                borderRadius: msg.sender === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                background: msg.sender === 'user' ? 'linear-gradient(135deg,#e6f7ff,#bae7ff)' : '#fff',
-                border: msg.sender === 'user' ? '1px solid #91d5ff' : '1px solid #e8e8e8',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              }}>
-                <Text style={{ fontSize: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, color: '#1a1a2e' }}>
-                  {msg.text.replace(/\*\*(.*?)\*\*/g, '$1')}
-                </Text>
-              </div>
-            </div>
-          ))}
-
-          {/* Typing Indicator */}
-          {isTyping && (
-            <div style={{ display: 'flex', gap: 10 }}>
-              <Avatar size={34} icon={<RobotOutlined />} style={{ background: 'linear-gradient(135deg,#1890ff,#722ed1)', flexShrink: 0 }} />
-              <div style={{ padding: '14px 18px', background: '#fff', borderRadius: '18px 18px 18px 4px', border: '1px solid #e8e8e8', display: 'flex', gap: 4, alignItems: 'center' }}>
-                {[0, 0.2, 0.4].map((delay, i) => (
-                  <div key={i} style={{
-                    width: 8, height: 8, borderRadius: '50%', background: '#1890ff',
-                    animation: 'bounce 0.8s infinite', animationDelay: `${delay}s`,
-                  }} />
-                ))}
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Suggestion Chips */}
-        <div style={{ padding: '8px 24px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {[
-            'Why did views drop?',
-            'Content ideas for next week',
-            'How to improve engagement rate',
-            'Compare PrivOS and Merve',
-          ].map(q => (
-            <button
-              key={q}
-              onClick={() => {
-                setInputValue(q);
-              }}
-              style={{
-                background: '#f0f5ff', border: '1px solid #adc6ff', borderRadius: 16,
-                padding: '5px 14px', cursor: 'pointer', fontSize: 12, color: '#2f54eb',
-                fontWeight: 500, transition: 'all 0.15s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#d6e4ff')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#f0f5ff')}
-            >
-              {q}
-            </button>
-          ))}
-        </div>
-
-        {/* Input */}
-        <div style={{ padding: '14px 24px 20px', display: 'flex', gap: 10 }}>
-          <Input
-            size="large"
-            placeholder="Ask AI about data, trends, or post improvement ideas..."
-            value={inputValue}
-            onChange={e => setInputValue(e.target.value)}
-            onPressEnter={handleSend}
-            style={{ borderRadius: 24, fontSize: 14 }}
-            prefix={<BulbOutlined style={{ color: '#aaa' }} />}
-            disabled={isTyping}
-          />
-          <Button
-            type="primary"
-            size="large"
-            icon={<SendOutlined />}
-            onClick={handleSend}
-            disabled={isTyping || !inputValue.trim()}
-            style={{
-              borderRadius: 24, padding: '0 24px',
-              background: 'linear-gradient(135deg,#1890ff,#722ed1)',
-              border: 'none', fontWeight: 600,
-            }}
-          >
-            Send
-          </Button>
-        </div>
-      </Card>
-
-      {/* ── GOAL MODAL ── */}
+      {/* GOAL MODAL */}
       <Modal
         title={<><AimOutlined style={{ color: '#1890ff', marginRight: 8 }} />Set Next KPI Goal</>}
         open={goalModalOpen}
@@ -968,14 +747,6 @@ export default function AIAssistantTab() {
           </div>
         </div>
       </Modal>
-
-
-      <style>{`
-        @keyframes bounce {
-          0%, 60%, 100% { transform: translateY(0); }
-          30% { transform: translateY(-6px); }
-        }
-      `}</style>
     </div>
   );
 }
