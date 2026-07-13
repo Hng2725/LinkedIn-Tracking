@@ -218,7 +218,7 @@ export default function SocialTrackerApp() {
               else pFollower = item;
               isFollowerItem = true;
             }
-          } catch (e) {}
+          } catch (e) { }
         }
         if (isFollowerItem) return;
 
@@ -363,7 +363,7 @@ export default function SocialTrackerApp() {
           const CHUNK_SIZE = 5;
           let processedCount = 0;
           const validPosts = postsArray.filter((p: any) => p.id?.includes(selectedAccId));
-          
+
           for (let i = 0; i < validPosts.length; i += CHUNK_SIZE) {
             const chunk = validPosts.slice(i, i + CHUNK_SIZE);
             // eslint-disable-next-line no-await-in-loop
@@ -438,7 +438,7 @@ export default function SocialTrackerApp() {
   };
 
   // Filter posts within date range
-  const { filteredPosts, chartData, stats, topPosts, avgViews, engagementRate, currentFollowers } = useMemo(() => {
+  const { filteredPosts, chartData, stats, topPosts, avgViews, avgReacts, engagementRate, engagementIsPostBased, currentFollowers } = useMemo(() => {
     let allPosts = [];
     if (selectedAccId === 'privos' && selectedPlatform === 'linkedin') {
       allPosts = syncedPosts;
@@ -452,7 +452,7 @@ export default function SocialTrackerApp() {
     const pFollowerCount = privosFollowerItem?.description ? (() => { try { return JSON.parse(privosFollowerItem.description).count; } catch (e) { return null; } })() : null;
     const currentFollowers = selectedAccId === 'merve' ? (mFollowerCount ?? platformData.followers) : (pFollowerCount ?? platformData.followers);
 
-    if (!dateRange || !dateRange[0] || !dateRange[1]) return { filteredPosts: [], chartData: [], stats: { views: 0, reacts: 0, comments: 0, reposts: 0 }, topPosts: [], avgViews: 0, engagementRate: '0.0', currentFollowers };
+    if (!dateRange || !dateRange[0] || !dateRange[1]) return { filteredPosts: [], chartData: [], stats: { views: 0, reacts: 0, comments: 0, reposts: 0 }, topPosts: [], avgViews: 0, avgReacts: 0, engagementRate: '0.0', engagementIsPostBased: false, currentFollowers };
 
     const startDate = dateRange[0];
     const endDate = dateRange[1];
@@ -489,7 +489,13 @@ export default function SocialTrackerApp() {
 
     const topPostsList = currentPosts.length > 0 ? [...currentPosts].sort((a, b) => ((b.reacts || 0) + (b.views || 0)) - ((a.reacts || 0) + (a.views || 0))).slice(0, 3) : [];
     const avgV = currentPosts.length > 0 ? Math.round(totalStats.views / currentPosts.length) : 0;
-    const eRate = totalStats.views > 0 ? ((totalStats.reacts + totalStats.comments + totalStats.reposts) / totalStats.views * 100).toFixed(1) : '0.0';
+    const avgReacts = currentPosts.length > 0 ? Math.round(totalStats.reacts / currentPosts.length) : 0;
+    const totalEngagements = totalStats.reacts + totalStats.comments + totalStats.reposts;
+    // LinkedIn không có views → dùng Post-based ER
+    const isLinkedin = selectedPlatform === 'linkedin';
+    const eRate = isLinkedin
+      ? (currentPosts.length > 0 ? (totalEngagements / currentPosts.length).toFixed(1) : '0.0')
+      : (totalStats.views > 0 ? ((totalEngagements / totalStats.views) * 100).toFixed(1) : '0.0');
 
     // Prepare chart data (group by day)
     const dailyDataMap = new Map();
@@ -511,7 +517,7 @@ export default function SocialTrackerApp() {
 
     const dailyChart = Array.from(dailyDataMap.values()).sort((a, b) => dayjs(a.date).unix() - dayjs(b.date).unix());
 
-    return { filteredPosts: currentPosts, chartData: dailyChart, stats: totalStats, topPosts: topPostsList, avgViews: avgV, engagementRate: eRate, currentFollowers };
+    return { filteredPosts: currentPosts, chartData: dailyChart, stats: totalStats, topPosts: topPostsList, avgViews: avgV, avgReacts, engagementRate: eRate, engagementIsPostBased: isLinkedin, currentFollowers };
   }, [selectedAccId, selectedPlatform, dateRange, sortBy, sortOrder, syncedPosts, merveSyncedPosts, merveFollowerItem, privosFollowerItem, platformData]);
 
   return (
@@ -521,7 +527,7 @@ export default function SocialTrackerApp() {
       <Card size="small" style={{ marginBottom: 16, background: '#f0f0f0', border: '1px dashed #999' }}>
         {privosSocialList && (
           <div style={{ marginBottom: 8, color: '#d9363e', fontWeight: 'bold', fontSize: 14 }}>
-            🎯 YOUR_LIST_ID: {privosSocialList._id} (Copy mã này để bỏ vào file github-action-crawl.ts)
+            🎯 YOUR_LIST_ID: {privosSocialList._id}
           </div>
         )}
         <Text style={{ fontSize: 11, fontFamily: 'monospace', wordBreak: 'break-all' }}>🔍 DEBUG: {debugInfo}</Text>
@@ -889,10 +895,19 @@ export default function SocialTrackerApp() {
                       <Card title="Quick Insights" style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} bordered={false}>
                         <Row gutter={[16, 16]}>
                           <Col span={12}>
-                            <Statistic title="Avg Views / Post" value={avgViews} prefix={<EyeOutlined />} />
+                            {selectedPlatform === 'linkedin' ? (
+                              <Statistic title="Avg Reacts / Post" value={avgReacts} prefix={<LikeOutlined />} />
+                            ) : (
+                              <Statistic title="Avg Views / Post" value={avgViews} prefix={<EyeOutlined />} />
+                            )}
                           </Col>
                           <Col span={12}>
-                            <Statistic title="Engagement Rate" value={engagementRate} suffix="%" prefix={<ThunderboltOutlined style={{ color: '#faad14' }} />} />
+                            <Statistic
+                              title={engagementIsPostBased ? 'Avg Interactions' : 'Engagement Rate'}
+                              value={engagementRate}
+                              suffix={engagementIsPostBased ? '' : '%'}
+                              prefix={<ThunderboltOutlined style={{ color: '#faad14' }} />}
+                            />
                           </Col>
                         </Row>
                       </Card>
