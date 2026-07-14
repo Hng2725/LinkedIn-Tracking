@@ -2,7 +2,7 @@
   "posts": [
     {
       "id": "privos-linkedin-urn-li-activity-7479768220426764288",
-      "date": "2026-07-06",
+      "date": "2026-07-07",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -12,7 +12,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7478739482389659649",
-      "date": "2026-07-06",
+      "date": "2026-07-07",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -22,7 +22,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7478359887475785728",
-      "date": "2026-07-06",
+      "date": "2026-07-07",
       "views": 0,
       "reacts": 1,
       "comments": 1,
@@ -32,7 +32,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7477996344842948608",
-      "date": "2026-07-06",
+      "date": "2026-07-07",
       "views": 0,
       "reacts": 3,
       "comments": 0,
@@ -124,14 +124,24 @@
       "id": "privos-linkedin-urn-li-activity-7482462575260123136",
       "date": "2026-07-13",
       "views": 0,
-      "reacts": 0,
+      "reacts": 1,
       "comments": 0,
       "reposts": 0,
       "summary": "📱 Simplify Employee Check-ins with PrivOSDaily check-ins are essential for team alignment, but manual reporting often creates unnecessary overhead. M...",
       "link": "https://www.linkedin.com/feed/update/urn:li:activity:7482462575260123136/"
+    },
+    {
+      "id": "privos-linkedin-urn-li-activity-7482704320476471296",
+      "date": "2026-07-14",
+      "views": 0,
+      "reacts": 1,
+      "comments": 0,
+      "reposts": 0,
+      "summary": "When enterprises evaluate AI platforms for regulated environments, the compliance conversation usually happens in security review. It should happen in...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7482704320476471296/"
     }
   ],
-  "lastCrawledAt": "2026-07-13T18:48:38.107Z",
+  "lastCrawledAt": "2026-07-14T18:16:58.978Z",
   "status": "done",
   "followers": null
 }
