@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { usePrivosContext, useLists, usePrivosApp } from '@privos/app-react';
 import { Card, Avatar, Typography, DatePicker, Row, Col, Statistic, List, Space, Tag, Radio, Select, Divider, Segmented, Tabs, Input, Button } from 'antd';
 import { UserOutlined, EyeOutlined, LikeOutlined, CommentOutlined, LinkOutlined, CrownOutlined, ThunderboltOutlined, FacebookOutlined, TwitterOutlined, LinkedinOutlined, DashboardOutlined, BarChartOutlined, RobotOutlined, SendOutlined, SyncOutlined } from '@ant-design/icons';
@@ -172,10 +172,87 @@ const cleanupOldTrackingPosts = async (app: any, items: any[], stageIds: string[
 
   return itemIds.length;
 };
+const parseToolObjectResponse = (res: any): any => {
+  if (!res) return null;
+  if (Array.isArray(res?.content)) {
+    const textBlock = res.content.find((c: any) => c.type === 'text' && c.text);
+    if (textBlock) {
+      try {
+        return JSON.parse(textBlock.text);
+      } catch (e) {
+        return res;
+      }
+    }
+  }
+  return res;
+};
+
+const getCreatedItemId = (res: any): string | null => {
+  const parsed = parseToolObjectResponse(res);
+  return parsed?._id || parsed?.item?._id || parsed?.item?.id || parsed?.id || null;
+};
+
+const createTrackingMarkerItem = async (app: any, listId: string, stageId: string | undefined, title: string) => {
+  const itemRes = await app.callServerTool({
+    name: 'privos.lists.createItem',
+    arguments: { listId, title, description: '' }
+  });
+  const itemId = getCreatedItemId(itemRes);
+  if (itemId && stageId) {
+    await app.callServerTool({
+      name: 'privos.lists.moveItemToStage',
+      arguments: { itemId, stageId }
+    });
+  }
+  return itemId;
+};
+
+const getTrackingListKey = (roomId: string) => {
+  const roomSuffix = String(roomId || 'room')
+    .replace(/[^a-zA-Z0-9]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase()
+    .slice(-32) || 'ROOM';
+  return `TRACKING_DATA_${roomSuffix}`;
+};
+
+const isTrackingDataList = (list: any) => {
+  const key = String(list?.key || '');
+  return list?.name === 'Tracking Data' || key === 'TRACKING_DATA' || key.startsWith('TRACKING_DATA_');
+};
+
+const createTrackingDataListForRoom = async (app: any, roomId: string) => {
+  const listRes = await app.callServerTool({
+    name: 'privos.lists.create',
+    arguments: {
+      roomId,
+      name: 'Tracking Data',
+      key: getTrackingListKey(roomId),
+      description: 'Auto-generated list for KPI Tracking LinkedIn data',
+      stages: [
+        { name: 'PrivOS LinkedIn', color: '#0a66c2' },
+        { name: 'Merve LinkedIn', color: '#722ed1' }
+      ]
+    }
+  });
+
+  const parsed = parseToolObjectResponse(listRes);
+  const createdList = parsed?.list || parsed;
+  const stages = parsed?.stages || createdList?.stages || [];
+  const listId = createdList?._id;
+  if (!listId) throw new Error('Tracking Data list was created without a list id');
+
+  await createTrackingMarkerItem(app, listId, stages[0]?._id, 'PrivOS linkedin');
+  await createTrackingMarkerItem(app, listId, stages[1]?._id, 'Merve linkedin');
+
+  return { ...createdList, stages };
+};
 export default function SocialTrackerApp() {
   const { roomId } = usePrivosContext();
   const { data: lists, loading: listsLoading } = useLists(roomId);
   const app = usePrivosApp();
+  const trackingSetupStartedRef = useRef(false);
 
   const [selectedAccId, setSelectedAccId] = useState<string>('merve');
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformId>('linkedin');
@@ -200,17 +277,28 @@ export default function SocialTrackerApp() {
   const [merveFollowerItem, setMerveFollowerItem] = useState<any>(null);
 
   useEffect(() => {
-    if (!lists || !app) {
-      setDebugInfo(`lists=${!!lists}, app=${!!app}, listsLoading=${listsLoading}`);
+    if (!lists || !app || !roomId) {
+      setDebugInfo(`lists=${!!lists}, app=${!!app}, roomId=${!!roomId}, listsLoading=${listsLoading}`);
       return;
     }
-
     const allListNames = lists.map((l: any) => l.name).join(', ');
     setDebugInfo(`Tìm thấy ${lists.length} list(s): [${allListNames}]`);
 
-    const targetList = lists.find((l: any) => l.name === 'Tracking Data' || l.key === 'TRACKING_DATA');
+    let targetList = lists.find(isTrackingDataList);
     if (!targetList) {
-      setDebugInfo(`Không tìm thấy "Tracking Data" trong ${lists.length} lists: [${allListNames}]`);
+      if (trackingSetupStartedRef.current) return;
+      trackingSetupStartedRef.current = true;
+      setDebugInfo('Tracking Data was not found in the current room. Creating the list, stages, and marker items automatically...');
+      createTrackingDataListForRoom(app, roomId)
+        .then((createdList) => {
+          setPrivosSocialList(createdList);
+          setDebugInfo('Tracking Data was created for the current room with marker items: PrivOS linkedin and Merve linkedin. Reloading data...');
+          window.location.reload();
+        })
+        .catch((err: any) => {
+          trackingSetupStartedRef.current = false;
+          setDebugInfo(`Failed to create Tracking Data: ${err?.message || JSON.stringify(err)}`);
+        });
       return;
     }
 
@@ -356,7 +444,7 @@ export default function SocialTrackerApp() {
     }).catch((err: any) => {
       setDebugInfo(`❌ Lỗi getItems: ${err?.message || JSON.stringify(err)}`);
     });
-  }, [lists, app]);
+  }, [lists, app, roomId, listsLoading]);
 
   const [syncDebug, setSyncDebug] = useState<string>('');
 
@@ -686,39 +774,11 @@ export default function SocialTrackerApp() {
                 if (!app || !roomId) return;
                 try {
                   setIsSyncing(true);
-                  // 1. Create List with Stage
-                  const listRes: any = await app.callServerTool({
-                    name: 'privos.lists.create',
-                    arguments: {
-                      roomId: roomId,
-                      name: 'Tracking Data',
-                      description: 'Auto-generated list for KPI Tracking',
-                      stages: [{ name: 'PrivOS Linkedin', color: '#0a66c2' }]
-                    }
-                  });
-                  // 2. Create Item
-                  if (listRes?.list?._id) {
-                    const itemRes: any = await app.callServerTool({
-                      name: 'privos.lists.createItem',
-                      arguments: {
-                        listId: listRes.list._id,
-                        title: 'dummy li privos',
-                        description: ''
-                      }
-                    });
-
-                    // 3. Move Item to Stage
-                    if (itemRes?._id && listRes.stages && listRes.stages[0]) {
-                      await app.callServerTool({
-                        name: 'privos.lists.moveItemToStage',
-                        arguments: { itemId: itemRes._id, stageId: listRes.stages[0]._id }
-                      });
-                    }
-                  }
+                  await createTrackingDataListForRoom(app, roomId);
                   window.location.reload();
                 } catch (e) {
                   console.error(e);
-                  alert('Lỗi tạo tự động: ' + e);
+                  alert('Failed to create Tracking Data automatically: ' + e);
                 } finally {
                   setIsSyncing(false);
                 }

@@ -2,7 +2,7 @@
   "posts": [
     {
       "id": "privos-linkedin-urn-li-activity-7479768220426764288",
-      "date": "2026-07-06",
+      "date": "2026-07-07",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -12,7 +12,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7478739482389659649",
-      "date": "2026-07-05",
+      "date": "2026-07-07",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -22,7 +22,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7478359887475785728",
-      "date": "2026-07-05",
+      "date": "2026-07-07",
       "views": 0,
       "reacts": 1,
       "comments": 1,
@@ -32,7 +32,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7477996344842948608",
-      "date": "2026-07-05",
+      "date": "2026-07-07",
       "views": 0,
       "reacts": 3,
       "comments": 0,
@@ -42,7 +42,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7477746714045476864",
-      "date": "2026-07-05",
+      "date": "2026-07-07",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -52,7 +52,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7477398999331676160",
-      "date": "2026-07-05",
+      "date": "2026-06-30",
       "views": 0,
       "reacts": 1,
       "comments": 0,
@@ -82,7 +82,7 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7480586476200611841",
-      "date": "2026-07-08",
+      "date": "2026-07-09",
       "views": 0,
       "reacts": 0,
       "comments": 0,
@@ -102,9 +102,9 @@
     },
     {
       "id": "privos-linkedin-urn-li-activity-7481268659185819648",
-      "date": "2026-07-10",
+      "date": "2026-07-11",
       "views": 0,
-      "reacts": 2,
+      "reacts": 3,
       "comments": 0,
       "reposts": 0,
       "summary": "Every AI agent runs here. That single architectural decision is what separates a secure enterprise AI deployment from one where security is bolted on ...",
@@ -119,9 +119,19 @@
       "reposts": 0,
       "summary": "🔄 When an employee leaves, what happens to the knowledge they leave behind?In many organizations, critical business knowledge still lives inside indi...",
       "link": "https://www.linkedin.com/feed/update/urn:li:activity:7475145958654369792/"
+    },
+    {
+      "id": "privos-linkedin-urn-li-activity-7482462575260123136",
+      "date": "2026-07-13",
+      "views": 0,
+      "reacts": 0,
+      "comments": 0,
+      "reposts": 0,
+      "summary": "📱 Simplify Employee Check-ins with PrivOSDaily check-ins are essential for team alignment, but manual reporting often creates unnecessary overhead. M...",
+      "link": "https://www.linkedin.com/feed/update/urn:li:activity:7482462575260123136/"
     }
   ],
-  "lastCrawledAt": "2026-07-12T18:17:42.954Z",
-  "status": "done",
+  "lastCrawledAt": "2026-07-14T03:21:04.793Z",
+  "status": "crawling",
   "followers": null
 }
